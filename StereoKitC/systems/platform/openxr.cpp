@@ -196,6 +196,7 @@ bool openxr_init() {
 	}
 #endif
 
+    backend_openxr_ext_request("XR_FB_display_refresh_rate");
 	array_t<const char *> extensions = openxr_list_extensions(xr_exts_user, [](const char *ext) {log_diagf("available: %s", ext);});
 	extensions.each([](const char *&ext) { 
 		log_diagf("REQUESTED: <~grn>%s<~clr>", ext);
@@ -447,8 +448,19 @@ bool openxr_init() {
 		return false;
 	}
 
+    PFN_xrRequestDisplayRefreshRateFB xrRequestDisplayRefreshRateFB_ = nullptr;
+    xrGetInstanceProcAddr(xr_instance,
+                          "xrRequestDisplayRefreshRateFB",
+                          (PFN_xrVoidFunction*)(&xrRequestDisplayRefreshRateFB_));
+
+    if (xrRequestDisplayRefreshRateFB_ != nullptr) {
+        float desiredRate = 120.0f;  // or whichever rate you wish to set
+        xrRequestDisplayRefreshRateFB_(xr_session, desiredRate);
+    }
+
 	// Create reference spaces! So we can find stuff relative to them :)
-	xr_refspace = openxr_preferred_space();
+    // Hack this so all stereokit is in an HUD (view) space.
+	xr_refspace = XR_REFERENCE_SPACE_TYPE_VIEW; //openxr_preferred_space();
 
 	// The space for our application
 	XrReferenceSpaceCreateInfo ref_space = { XR_TYPE_REFERENCE_SPACE_CREATE_INFO };
